@@ -4,6 +4,7 @@ import time
 import fake_useragent
 
 
+
 def get_links(text):
     useragent = fake_useragent.UserAgent()
 
@@ -45,9 +46,25 @@ def get_links(text):
 
 
 def get_resume(link):
-    pass
+    useragent = fake_useragent.UserAgent()
+    data = requests.get(url=link, headers={"user-agent": useragent.random})
+    if data.status_code != 200:
+        return
+    soup = BeautifulSoup(data.content, "lxml")
+
+    try:
+        resume = soup.find_all("div", attrs={"class":"bloko-columns-row"})[1]
+        sex = resume.find("span", attrs={"data-qa":"resume-personal-gender"}).text
+        age = int(resume.find("span", attrs={"data-qa":"resume-personal-age"}).text[:2])
+        job_search_status = resume.find("div", attrs={"class": "resume-job-search-status"}).text
+        personal_adress = resume.find("div", attrs={"class":"bloko-translate-guard"}).find("span",attrs={"data-qa": "resume-personal-address"}).text
+        return personal_adress
+    except Exception as e:
+        print(f"Error finding total pages: {e}")
+        return 1
 
 
 if __name__ == "__main__":
-    for link in get_links("python"):
-        print(link)
+    # Пример использования get_resume для одного резюме
+    print(get_resume("https://hh.ru/resume/0de1b45d0008b61e070039ed1f6d6f4e4e4b43"))
+
