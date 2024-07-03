@@ -2,17 +2,26 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import fake_useragent
-import json
-import os
+from database import Resume, Vacancy, session
+from Enums.resume_parms_validation import *
+from Enums.vacancy_parms_validation import *
+from typing import List
 
-
-def get_links(text):
+def get_links(text: str, relocation: Relocation, sex: Sex, job_search_status: JobSearchStatus, employment: Employment, schedule: Schedule, experience: Experience, education: Education) -> List[str]:
+    # text - Любой
+    # relocation - living_or_relocation(Живут или готовы переехать в регион), living(Живут в регионе), living_but_relocation(Готовы уехать из региона), relocation(Не живут, но готовы переехать в регион)
+    # sex - male, female, unknown
+    # job_search_status - unknown(Без статуса поиска), not_looking_for_job(Не ищет работу), looking_for_offers(Рассматривает предложения), active_search(Ативно ищет работу), has_job_offer(Предложили работу, решает), accepted_job_offer(Вышел на новое место работы)
+    # education - higher(Высшее), not_required_or_not_specified(Не требуется или не указано), special_secondary(Среднее профессиональное), unfinished_higher(Незаконченое высшее), secondary(среднее), bachelor(Бакалавр), master(Магистр), candidate(Кандидат наук), doctor(Доктор наук)
+    # employment - volunteer(Волонтерство), probation(Стажировка), project(Проектная работа), part(Частичная занятость), full(Полная занятость)
+    # experience - None(Не имеет значения), between1And3(1-3 года), noExperience(нет опыта), between3And6(3-6 лет), moreThan6(Более 6 лет)
+    # schedule - fullDay(Полный день), shift(Сменный график), flyInFlyOut(Вахтовый метод), remote(Удаленныя работа), flexible(Гибкий график)
     useragent = fake_useragent.UserAgent()
 
 
     def get_total_pages():
         data = requests.get(
-            url=f"https://hh.ru/search/resume?text={text}&area=1&isDefaultArea=true&exp_period=all_time&logic=normal&pos=full_text&page=0",
+            url=f"https://hh.ru/search/resume?isDefaultArea=true&exp_period=all_time&logic=normal&pos=full_text&hhtmFrom=vacancy_search_list&hhtmFromLabel=resume_search_line&search_period=0&order_by=relevance&filter_exp_period=all_time&relocation={relocation}&gender={sex}&area=113&job_search_status={job_search_status}&job_search_status_changed_by_user=true&employment={employment}&schedule={schedule}&experience={experience}&education_level={education}&text={text}",
             headers={"user-agent": useragent.random}
         )
         if data.status_code != 200:
@@ -30,7 +39,7 @@ def get_links(text):
 
     for page in range(total_pages):
         data = requests.get(
-            url=f"https://hh.ru/search/resume?text={text}&area=1&isDefaultArea=true&exp_period=all_time&logic=normal&pos=full_text&page={page}",
+            url=f"https://hh.ru/search/resume?isDefaultArea=true&exp_period=all_time&logic=normal&pos=full_text&hhtmFrom=vacancy_search_list&hhtmFromLabel=resume_search_line&search_period=0&order_by=relevance&filter_exp_period=all_time&relocation={relocation}&gender={sex}&area=113&job_search_status={job_search_status}&job_search_status_changed_by_user=true&employment={employment}&schedule={schedule}&experience={experience}&education_level={education}&text={text}&page={page}",
             headers={"user-agent": useragent.random}
         )
         if data.status_code != 200:
@@ -71,9 +80,9 @@ def get_resume(link):
         else:
             job_search_status = None
         if resume.find("div", attrs={"class":"bloko-translate-guard"}).find("span",attrs={"data-qa": "resume-personal-address"}):
-            personal_adress = resume.find("div", attrs={"class":"bloko-translate-guard"}).find("span",attrs={"data-qa": "resume-personal-address"}).text
+            personal_address = resume.find("div", attrs={"class":"bloko-translate-guard"}).find("span",attrs={"data-qa": "resume-personal-address"}).text
         else:
-            personal_adress = None
+            personal_address = None
         if resume.find("div", attrs={"class":"resume-block-position"}):
             position = resume.find("div", attrs={"class":"resume-block-position"}).text
         else:
@@ -113,18 +122,42 @@ def get_resume(link):
             language = [i.text for i in resume.find("div", attrs={"data-qa":"resume-block-languages"}).find("div", attrs={"class":"resume-block-item-gap"}).find_all("div", attrs={"class":"bloko-tag bloko-tag_inline"})]
         else:
             language = []
-        return language
+
+        new_resume = Resume(
+            url=link,
+            sex=sex,
+            age=age,
+            job_search_status=job_search_status,
+            personal_address=personal_address,
+            position=position,
+            specialization=specialization,
+            busyness=busyness,
+            work_schedule=work_schedule,
+            experience=experience,
+            about_me=about_me,
+            education=education,
+            language=language,
+            skills=skills
+        )
+
+        session.add(new_resume)
+        session.commit()
     except Exception as e:
         print(f"Error: {e}")
         return 1, link
 
 
-def get_links_vacancy(text):
+def get_links_vacancy(text: str, education: Education, part_time: PartTime, experience: Experience, schedule: Schedule) -> List[str]:
+    # text - Любой
+    # education - higher(Высшее), not_required_or_not_specified(Не требуется или не указано), special_secondary(Среднее профессиональное)
+    # part_time - employment_part(неполный рабочий день), from_four_to_six_hours_in_a_day(от 4 до 6 часов в день), start_after_sixteen(по вечерам), employment_project(Разовое задание), only_saturday_and_sunday(по выходным)
+    # experience - None(Не имеет значения), between1And3(1-3 года), noExperience(нет опыта), between3And6(3-6 лет), moreThan6(Более 6 лет)
+    # schedule - fullDay(Полный день), shift(Сменный график), flyInFlyOut(Вахтовый метод), remote(Удаленныя работа), flexible(Гибкий график)
     useragent = fake_useragent.UserAgent()
 
     def get_total_pages():
         data = requests.get(
-            url=f"https://hh.ru/search/vacancy?text={text}&hhtmFrom=resume_search_result&hhtmFromLabel=vacancy_search_line",
+            url=f"https://hh.ru/search/vacancy?hhtmFrom=main&hhtmFromLabel=vacancy_search_line&search_field=name&search_field=company_name&search_field=description&enable_snippets=false&L_save_area=true&area=113&education={education}&part_time={part_time}&experience={experience}&schedule={schedule}&text={text}",
             headers={"user-agent": useragent.random}
         )
         if data.status_code != 200:
@@ -142,7 +175,7 @@ def get_links_vacancy(text):
 
     for page in range(total_pages):
         data = requests.get(
-            url=f"https://hh.ru/search/vacancy?text={text}&page={page}",
+            url=f"https://hh.ru/search/vacancy?hhtmFrom=main&hhtmFromLabel=vacancy_search_line&search_field=name&search_field=company_name&search_field=description&enable_snippets=false&L_save_area=true&area=113&education={education}&part_time={part_time}&experience={experience}&schedule={schedule}&text={text}&page={page}",
             headers={"user-agent": useragent.random}
         )
         if data.status_code != 200:
@@ -159,6 +192,7 @@ def get_links_vacancy(text):
         time.sleep(1)
 def get_vacancy(link):
     data = requests.get(url=link, headers={"user-agent":"Parser/1.0 (den.spesivtsev.006@gmail.com)"})
+
     if data.status_code != 200:
         return 0
     time.sleep(1)
@@ -177,8 +211,28 @@ def get_vacancy(link):
     driver_license = [i.get("name") for i in vacancy.get("driver_license_types")]
     emloyer_name = vacancy.get("employer").get("name")
     languages = [i.get("name") for i in vacancy.get("languages")]
-    return key_skills, link
+
+    new_vacancy = Vacancy(
+        url=link,
+        name = name,
+        area = area,
+        salary_from = salary_from,
+        salary_to=salary_to,
+        experience=experience,
+        schedule=schedule,
+        employment=employment,
+        contacts=contacts,
+        description=description,
+        key_skills=key_skills,
+        driver_license=driver_license,
+        employer_name=emloyer_name,
+        languages=languages
+    )
+
+    session.add(new_vacancy)
+    session.commit()
 
 if __name__ == "__main__":
-    for page in get_links(None):
-        print(get_resume(page))
+    for page in get_links(None, relocation="living_or_relocation", sex="male", job_search_status="looking_for_offers", education="higher", employment="full", schedule="remote", experience=None):
+        get_resume(page)
+print(session.query(Resume).all())
