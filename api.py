@@ -5,9 +5,12 @@ from Enums.resume_parms_validation import *
 from Enums.vacancy_parms_validation import *
 app = FastAPI(title="ParserHH")
 @app.get("/resume")
-def resume_get(text: str, relocation: Relocation, sex: Sex, job_search_status: JobSearchStatus, employment: Employment, schedule: Schedule, experience: Experience, education: Education):
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+def resume_get(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_search_status: Resume_JobSearchStatus, employment: Resume_Employment, schedule: Resume_Schedule, experience: Resume_Experience, education: Resume_Education, count: int):
+    print("API")
+    links = list(get_links(text,relocation,sex,job_search_status,employment,schedule,experience,education))
+    if not all(list(i in list(i.url for i in session.query(Resume).all()) for i in links)):
+        Base.metadata.drop_all(engine)
+        Base.metadata.create_all(engine)
     for page in get_links(text,relocation,sex,job_search_status,employment,schedule,experience,education):
         get_resume(page)
     resumes = session.query(Resume).all()
@@ -39,11 +42,14 @@ def resume_get(text: str, relocation: Relocation, sex: Sex, job_search_status: J
             "details": None
             }
 @app.get("/vacancy")
-def vacancy_get(text: str, education: Education, part_time: PartTime, experience: Experience, schedule: Schedule):
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-    for page in get_links_vacancy(text, education, part_time, experience, schedule):
+def vacancy_get(text: str| None = None, education: Vacancy_Education = None, part_time: Vacancy_PartTime = None, experience: Vacancy_Experience = None, schedule: Vacancy_Schedule = None, count: int = 1):
+    links = list(get_links_vacancy(text, education, part_time, experience, schedule, count))
+    if not all(list(i in list(i.url for i in session.query(Vacancy).all()) for i in links)):
+        Base.metadata.drop_all(engine)
+        Base.metadata.create_all(engine)
+    for page in links:
         get_vacancy(page)
+
     vacancies = session.query(Vacancy).all()
 
     result_list = []
