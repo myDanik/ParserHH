@@ -1,12 +1,10 @@
 import asyncio
-import requests
-from bs4 import BeautifulSoup
 from telebot.async_telebot import AsyncTeleBot
 from telebot import types
 import aiohttp
-from Enums.vacancy_parms_validation import *
-from Enums.resume_parms_validation import *
-from url import TOKEN
+from ParserHH.Enums.vacancy_parms_validation import *
+from ParserHH.Enums.resume_parms_validation import *
+from ParserHH.url import TOKEN
 bot = AsyncTeleBot(TOKEN)
 
 user_states = {}

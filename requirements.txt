@@ -3,6 +3,12 @@ psycopg2
 fake_useragent
 beautifulsoup4
 lxml
-
-
+fastapi
+requests
+BeautifulSoup4
+fake_useragent
+sqlalchemy
+asyncio
+telebot
+aiohttp
 
