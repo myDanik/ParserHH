@@ -51,12 +51,14 @@ def get_links(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_sea
         if data.status_code != 200:
             continue
         soup = BeautifulSoup(data.content, features="lxml")
-        for i in soup.find(attrs={"class": "resume-serp-content"}).find_all("div", attrs={"class": None}):
-            h3_tag = i.find("h3", attrs={"class": "bloko-header-section-3"})
-            if h3_tag is not None:
-                link = h3_tag.find("a")
-                if link is not None:
-                    yield f"https://hh.ru{link.attrs['href'].split('?')[0]}"
+        if soup.find(attrs={"class": "resume-serp-content"}):
+            for i in soup.find(attrs={"class": "resume-serp-content"}).find_all("div", attrs={"class": None}):
+                h3_tag = i.find("h3", attrs={"class": "bloko-header-section-3"})
+                if h3_tag is not None:
+                    link = h3_tag.find("a")
+                    if link is not None:
+                        print(f"https://hh.ru{link.attrs['href'].split('?')[0]}")
+                        yield f"https://hh.ru{link.attrs['href'].split('?')[0]}"
 
         time.sleep(1)
 

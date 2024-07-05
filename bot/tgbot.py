@@ -102,7 +102,7 @@ def format_vacancy_info(vacancy_dict):
     Город: {vacancy_dict.get("area") if vacancy_dict.get("area") else ''}
     Работодатель: {vacancy_dict.get("employer_name")}
     Описание: {vacancy_dict.get("description") if vacancy_dict.get("description") else ''}
-    Зарплата: {'от' + vacancy_dict['salary_from'] if vacancy_dict['salary_from'] else ''}  {'до' + vacancy_dict['salary_to'] if vacancy_dict['salary_to'] else ''}
+    Зарплата: {'от' + str(vacancy_dict['salary_from']) if vacancy_dict['salary_from'] else ''}  {'до' + str(vacancy_dict['salary_to']) if vacancy_dict['salary_to'] else ''}
     Опыт работы: {vacancy_dict.get("experience") if vacancy_dict.get("experience") else 'Не указан'}
     График: {vacancy_dict['schedule'] if vacancy_dict['schedule'] else 'Не указан'}
     Занятость: {vacancy_dict.get("employment") if vacancy_dict.get("employment") else 'Не указана'}
@@ -118,7 +118,7 @@ def format_vacancy_info(vacancy_dict):
         return message
 
 async def fetch_vacancies(text, education, part_time, experience, schedule, count):
-    url = f"http://lmy_app:8000/vacancy"
+    url = f"http://my_app:8000/vacancy"
     cnt = int(count.value)//20
     params = {
         "text": text,
