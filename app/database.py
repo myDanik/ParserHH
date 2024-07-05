@@ -1,8 +1,8 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, Table, MetaData
+from sqlalchemy import create_engine, Column, Integer, String, Text
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import sessionmaker
-from url import URL
+from shared.url import URL
 Base = declarative_base()
 engine = create_engine(URL)
 class Vacancy(Base):

@@ -1,0 +1,35 @@
+services:
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: my_bot
+    environment:
+      - TOKEN=${TOKEN}
+    depends_on:
+      - db
+
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: my_app
+    environment:
+      - URL=${URL}
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    container_name: my_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

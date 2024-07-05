@@ -3,8 +3,8 @@ from bs4 import BeautifulSoup
 import time
 import fake_useragent
 from database import Resume, Vacancy, session
-from Enums.resume_parms_validation import *
-from Enums.vacancy_parms_validation import *
+from shared.Enums.resume_parms_validation import *
+from shared.Enums.vacancy_parms_validation import *
 from typing import List, Union
 
 def get_links(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_search_status: Resume_JobSearchStatus, employment: Resume_Employment, schedule: Resume_Schedule, experience: Resume_Experience, education: Resume_Education, count: int) -> List[str]:

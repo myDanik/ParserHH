@@ -2,10 +2,10 @@ import asyncio
 from telebot.async_telebot import AsyncTeleBot
 from telebot import types
 import aiohttp
-from Enums.vacancy_parms_validation import *
-from Enums.resume_parms_validation import *
-from Enums.translate_dict import *
-from url import TOKEN
+from shared.Enums.vacancy_parms_validation import *
+from shared.Enums.resume_parms_validation import *
+from shared.Enums.translate_dict import *
+from shared.url import TOKEN
 
 bot = AsyncTeleBot(TOKEN)
 
@@ -99,17 +99,17 @@ def format_vacancy_info(vacancy_dict):
     message = f"""
     URL: {URL}
     Название: {vacancy_dict.get("name")}
-    Город: {vacancy_dict.get("area")}
+    Город: {vacancy_dict.get("area") if vacancy_dict.get("area") else ''}
     Работодатель: {vacancy_dict.get("employer_name")}
-    Описание: {vacancy_dict.get("description")}
-    Зарплата: от {vacancy_dict['salary_from']} до {vacancy_dict['salary_to']}
-    Опыт работы: {vacancy_dict.get("experience")}
-    График: {vacancy_dict['schedule']}
-    Занятость: {vacancy_dict.get("employment")}
-    Навыки: {(vacancy_dict.get("key_skills"))}
-    Водительское Удостоверение: {vacancy_dict.get("driver_licence")}
-    Знание языков: {vacancy_dict.get("languages")}
-    Контакты: {vacancy_dict.get("contacts")}
+    Описание: {vacancy_dict.get("description") if vacancy_dict.get("description") else ''}
+    Зарплата: {'от' + vacancy_dict['salary_from'] if vacancy_dict['salary_from'] else ''}  {'до' + vacancy_dict['salary_to'] if vacancy_dict['salary_to'] else ''}
+    Опыт работы: {vacancy_dict.get("experience") if vacancy_dict.get("experience") else 'Не указан'}
+    График: {vacancy_dict['schedule'] if vacancy_dict['schedule'] else 'Не указан'}
+    Занятость: {vacancy_dict.get("employment") if vacancy_dict.get("employment") else 'Не указана'}
+    Навыки: {(vacancy_dict.get("key_skills")) if (vacancy_dict.get("key_skills")) else 'Не указаны'}
+    Водительское Удостоверение: {vacancy_dict.get("driver_licence") if vacancy_dict.get("driver_licence") else 'Отсутствует'}
+    Знание языков: {vacancy_dict.get("languages") if vacancy_dict.get("languages") else 'Не указано'}
+    {'Контакты:' + vacancy_dict.get("contacts") if vacancy_dict.get("contacts") else ''}
     """
     print(len(message))
     if len(message)>4095:
@@ -118,7 +118,7 @@ def format_vacancy_info(vacancy_dict):
         return message
 
 async def fetch_vacancies(text, education, part_time, experience, schedule, count):
-    url = f"http://127.0.0.1:8000/vacancy"
+    url = f"http://lmy_app:8000/vacancy"
     cnt = int(count.value)//20
     params = {
         "text": text,
@@ -129,7 +129,7 @@ async def fetch_vacancies(text, education, part_time, experience, schedule, coun
         "count": cnt
     }
     print("Fetch vacancies")
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(trust_env=True) as session:
         async with session.get(url, params=params) as response:
             if response.status == 200:
                 data = await response.json()
@@ -169,11 +169,11 @@ async def handle_message_resume(message):
         elif state == 'GET_JOBSEARCHSTATUS':
             user_data[chat_id]['jobsearchstatus'] = convert_to_enum_value(Resume_JobSearchStatus, message.text)
             user_states[chat_id] = 'GET_EDUCATION_RESUME'
-            await bot.send_message(chat_id, "Выберите Уровень образования:", reply_markup=create_enum_markup(Resume_Education))
+            await bot.send_message(chat_id, "Выберите уровень образования:", reply_markup=create_enum_markup(Resume_Education))
         elif state == 'GET_EDUCATION_RESUME':
             user_data[chat_id]['education_resume'] = convert_to_enum_value(Resume_Education, message.text)
             user_states[chat_id] = 'GET_EMPLOYMET'
-            await bot.send_message(chat_id, "Выберите статуз занятости:", reply_markup=create_enum_markup(Resume_Employment))
+            await bot.send_message(chat_id, "Выберите статуc занятости:", reply_markup=create_enum_markup(Resume_Employment))
         elif state == 'GET_EMPLOYMET':
             user_data[chat_id]['employment'] = convert_to_enum_value(Resume_Employment, message.text)
             user_states[chat_id] = 'GET_EXPERIENCE_RESUME'
@@ -181,7 +181,7 @@ async def handle_message_resume(message):
         elif state == 'GET_EXPERIENCE_RESUME':
             user_data[chat_id]['experience_resume'] = convert_to_enum_value(Resume_Experience, message.text)
             user_states[chat_id] = 'GET_SCHEDULE_RESUME'
-            await bot.send_message(chat_id, "Выберите График работы:", reply_markup=create_enum_markup(Resume_Schedule))
+            await bot.send_message(chat_id, "Выберите график работы:", reply_markup=create_enum_markup(Resume_Schedule))
         elif state == 'GET_SCHEDULE_RESUME':
             user_data[chat_id]['schedule_resume'] = convert_to_enum_value(Resume_Schedule, message.text)
             user_states[chat_id] = 'GET_COUNT_RESUME'
@@ -208,7 +208,7 @@ async def handle_message_resume(message):
             for resume_dict in result:
                 await bot.send_message(chat_id, format_resume_info(resume_dict),reply_markup=markup)
 async def fetch_resumes(text, relocation, sex, job_search_status, education, employment, experience, schedule, count):
-    url = f"http://127.0.0.1:8000/resume"
+    url = f"http://my_app:8000/resume"
     cnt = int(count.value)//20
     params = {
         "text": text,
@@ -222,7 +222,7 @@ async def fetch_resumes(text, relocation, sex, job_search_status, education, emp
         "count": cnt
     }
     print("Fetch vacancies")
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(trust_env=True) as session:
         async with session.get(url, params=params) as response:
             if response.status == 200:
                 data = await response.json()
@@ -236,15 +236,15 @@ def format_resume_info(resume_dict):
     message = f"""
         URL: {URL}
         Пол: {resume_dict.get("sex")} {resume_dict.get("age") if resume_dict.get("age") != 0 else "???"} г.
-        {resume_dict.get("job_search_status")}
-        Город: {resume_dict.get("personal_address")}
-        Позиция: {resume_dict.get("specialization")}
-        {resume_dict.get("work_schedule")}
-        ```Описание: {resume_dict.get("about_me")}
-        Опыт работы: {resume_dict.get("experience")//12} г. {resume_dict.get("experience") - (resume_dict.get("experience")//12)*12} мес.
-        Навыки: {(resume_dict.get("skills"))}
-        {resume_dict.get("education")}
-        Знание языков: {resume_dict.get("language")}
+        {resume_dict.get("job_search_status") if resume_dict.get("job_search_status") else ''}
+        Город: {resume_dict.get("personal_address") if resume_dict.get("personal_address") else 'Не указан'}
+        Позиция: {resume_dict.get("specialization") if resume_dict.get("specialization") else 'Не указана'}
+        {resume_dict.get("work_schedule") if resume_dict.get("work_schedule") else ''}
+        Описание: {resume_dict.get("about_me") if resume_dict.get("about_me") else 'Отсутствует'}
+        Опыт работы: {str(resume_dict.get("experience")//12)+'г.' if resume_dict.get("experience")//12!=0 else ''} {resume_dict.get("experience") - (resume_dict.get("experience")//12)*12} мес.
+        Навыки: {(resume_dict.get("skills")) if (resume_dict.get("skills")) else 'Не указаны'}
+        {resume_dict.get("education") if resume_dict.get("education") else ''}
+        {'Знание языков:' + resume_dict.get("language") if resume_dict.get("language") else ''}
         """
     print(len(message))
     if len(message) > 4095:

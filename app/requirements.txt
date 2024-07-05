@@ -1,0 +1,8 @@
+sqlalchemy
+psycopg2-binary
+fake_useragent
+beautifulsoup4
+lxml
+fastapi
+requests
+python-dotenv

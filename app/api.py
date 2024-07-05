@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from main import get_links, get_resume, get_links_vacancy, get_vacancy
-from database import Resume, Vacancy, session, Base, engine
-from Enums.resume_parms_validation import *
-from Enums.vacancy_parms_validation import *
+from database import Resume, Vacancy, session, Base
+from shared.Enums.resume_parms_validation import *
+from shared.Enums.vacancy_parms_validation import *
 app = FastAPI(title="ParserHH")
 @app.get("/resume")
 def resume_get(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_search_status: Resume_JobSearchStatus, employment: Resume_Employment, schedule: Resume_Schedule, experience: Resume_Experience, education: Resume_Education, count: int = 1):
