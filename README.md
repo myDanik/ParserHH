@@ -1,12 +1,12 @@
-Учебная практика \n
-Для запуска проекта сделайте git clone https://github.com/myDanik/ParserHH.git, в корневой папке проекта создайте файл .env, где создадите следующие переменные и зададите им свои значения:
+**Учебная практика** <br/>
+Для запуска проекта сделайте `git clone https://github.com/myDanik/ParserHH.git`, в корневой папке проекта создайте файл .env, где создадите следующие переменные и зададите им свои значения:
 ```python
 POSTGRES_USER=''
 POSTGRES_PASSWORD=''
 POSTGRES_DB=''
 TOKEN = 'Ваш токен телеграмм бота'
-URL = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@my_db:5432/{POSTGRES_DB}'
+URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@my_db:5432/{POSTGRES_DB}"
 ```
-далее в терминал: docker-compose up --build \n
-Интерфейс бота должен быть понятен \n
+Далее введите в терминал: `docker-compose up --build` <br/>
+Интерфейс бота должен быть понятен <br/>
 При вводе количества значений вы можете вручную ввести 0, тогда спарсятся все доступные вакансии/резюме, но помните, что это может занять очень продолжительное время
