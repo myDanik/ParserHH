@@ -1,18 +1,23 @@
 from fastapi import FastAPI
-from ParserHH.main import get_links, get_resume, get_links_vacancy, get_vacancy
-from ParserHH.database import Resume, Vacancy, session, Base, engine
-from ParserHH.Enums.resume_parms_validation import *
-from ParserHH.Enums.vacancy_parms_validation import *
+from main import get_links, get_resume, get_links_vacancy, get_vacancy
+from database import Resume, Vacancy, session, Base, engine
+from Enums.resume_parms_validation import *
+from Enums.vacancy_parms_validation import *
 app = FastAPI(title="ParserHH")
 @app.get("/resume")
-def resume_get(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_search_status: Resume_JobSearchStatus, employment: Resume_Employment, schedule: Resume_Schedule, experience: Resume_Experience, education: Resume_Education, count: int):
-    # print("API")
-    # links = list(get_links(text,relocation,sex,job_search_status,employment,schedule,experience,education))
-    # if not all(list(i in list(i.url for i in session.query(Resume).all()) for i in links)):
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-    for page in get_links(text,relocation,sex,job_search_status,employment,schedule,experience,education):
-        get_resume(page)
+def resume_get(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_search_status: Resume_JobSearchStatus, employment: Resume_Employment, schedule: Resume_Schedule, experience: Resume_Experience, education: Resume_Education, count: int = 1):
+    print("API")
+    links = list(get_links(text,relocation,sex,job_search_status,employment,schedule,experience, education, count))
+    print(f"Fetched links: {links}")
+    existing_links = [resume.url.strip() for resume in session.query(Resume).all()]
+    print(f"Existing links in DB: {existing_links}")
+
+    if sorted(links) != sorted(existing_links):
+        clear_database()
+        print("Drop DB")
+        for page in links:
+            get_resume(page)
+
     resumes = session.query(Resume).all()
 
     result_list = []
@@ -30,10 +35,10 @@ def resume_get(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_se
             "busyness": resume.busyness,
             "work_schedule": resume.work_schedule,
             "experience": resume.experience,
-            "skills": [skill.skill for skill in resume.skills],
+            "skills": [skill for skill in resume.skills],
             "about_me": resume.about_me,
             "education": resume.education,
-            "languages": [language.language for language in resume.languages]
+            "languages": [language for language in resume.language]
         }
         result_list.append(resume_dict)
 
@@ -42,14 +47,20 @@ def resume_get(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_se
             "details": None
             }
 @app.get("/vacancy")
-def vacancy_get(text: str| None = None, education: Vacancy_Education = None, part_time: Vacancy_PartTime = None, experience: Vacancy_Experience = None, schedule: Vacancy_Schedule = None, count: int = 1):
-    print("API")
-    links = list(get_links_vacancy(text, education, part_time, experience, schedule, count))
-    # if not all(list(i in list(i.url for i in session.query(Vacancy).all()) for i in links)):
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-    for page in links:
-        get_vacancy(page)
+def vacancy_get(text: str, education: Vacancy_Education, part_time: Vacancy_PartTime, experience: Vacancy_Experience, schedule: Vacancy_Schedule, count: int = 1):
+    print(text)
+    links = list(get_links_vacancy(text=text, education=education, part_time=part_time, experience=experience, schedule=schedule, count=count))
+    print(f"Fetched links: {links}")
+    existing_links = [vacancy.url.strip() for vacancy in session.query(Vacancy).all()]
+    print(f"Existing links in DB: {existing_links}")
+
+
+    if sorted(links)!=sorted(existing_links):
+        clear_database()
+        print("Drop DB")
+        for page in links:
+            get_vacancy(page)
+
 
     vacancies = session.query(Vacancy).all()
 
@@ -78,3 +89,9 @@ def vacancy_get(text: str| None = None, education: Vacancy_Education = None, par
      "data": result_list,
      "details": None
      }
+def clear_database():
+
+    meta = Base.metadata
+    for table in reversed(meta.sorted_tables):
+        session.execute(table.delete())
+    session.commit()

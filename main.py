@@ -2,12 +2,12 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import fake_useragent
-from ParserHH.database import Resume, Vacancy, session
-from ParserHH.Enums.resume_parms_validation import *
-from ParserHH.Enums.vacancy_parms_validation import *
-from typing import List
+from database import Resume, Vacancy, session
+from Enums.resume_parms_validation import *
+from Enums.vacancy_parms_validation import *
+from typing import List, Union
 
-def get_links(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_search_status: Resume_JobSearchStatus, employment: Resume_Employment, schedule: Resume_Schedule, experience: Resume_Experience, education: Resume_Education) -> List[str]:
+def get_links(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_search_status: Resume_JobSearchStatus, employment: Resume_Employment, schedule: Resume_Schedule, experience: Resume_Experience, education: Resume_Education, count: int) -> List[str]:
     # text - Любой
     # relocation - living_or_relocation(Живут или готовы переехать в регион), living(Живут в регионе), living_but_relocation(Готовы уехать из региона), relocation(Не живут, но готовы переехать в регион)
     # sex - male, female, unknown
@@ -21,9 +21,10 @@ def get_links(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_sea
 
     def get_total_pages():
         data = requests.get(
-            url=f"https://hh.ru/search/resume?isDefaultArea=true&exp_period=all_time&logic=normal&pos=full_text&hhtmFrom=vacancy_search_list&hhtmFromLabel=resume_search_line&search_period=0&order_by=relevance&filter_exp_period=all_time&relocation={is_None(relocation)}&gender={is_None(sex)}&area=113&job_search_status={is_None(job_search_status)}&job_search_status_changed_by_user=true&employment={is_None(employment)}&schedule={is_None(schedule)}&experience={is_None(experience)}&education_level={is_None(education)}&text={is_None(text)}",
+            url=f"https://hh.ru/search/resume?isDefaultArea=true&exp_period=all_time&logic=normal&pos=full_text&hhtmFrom=vacancy_search_list&hhtmFromLabel=resume_search_line&search_period=0&order_by=relevance&filter_exp_period=all_time&relocation={is_None(relocation)}&gender={is_None(sex)}&area=113&job_search_status={is_None(job_search_status)}&job_search_status_changed_by_user=true&employment={is_None(employment)}&schedule={is_None(schedule)}&experience={is_None(experience)}&education_level={is_None(education)}&text={text}",
             headers={"user-agent": useragent.random}
         )
+
         if data.status_code != 200:
             return 0
         soup = BeautifulSoup(data.content, "lxml")
@@ -35,13 +36,18 @@ def get_links(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_sea
             print(f"Error finding total pages: {e}")
             return 1
 
-    total_pages = get_total_pages()
-
+    if count == 0:
+        total_pages = get_total_pages()
+    else:
+        total_pages = count
+    print(
+        f"https://hh.ru/search/resume?isDefaultArea=true&exp_period=all_time&logic=normal&pos=full_text&hhtmFrom=vacancy_search_list&hhtmFromLabel=resume_search_line&search_period=0&order_by=relevance&filter_exp_period=all_time&relocation={is_None(relocation)}&gender={is_None(sex)}&area=113&job_search_status={is_None(job_search_status)}&job_search_status_changed_by_user=true&employment={is_None(employment)}&schedule={is_None(schedule)}&experience={is_None(experience)}&education_level={is_None(education)}&text={text}")
     for page in range(total_pages):
         data = requests.get(
-            url=f"https://hh.ru/search/resume?isDefaultArea=true&exp_period=all_time&logic=normal&pos=full_text&hhtmFrom=vacancy_search_list&hhtmFromLabel=resume_search_line&search_period=0&order_by=relevance&filter_exp_period=all_time&relocation={is_None(relocation)}&gender={is_None(sex)}&area=113&job_search_status={is_None(job_search_status)}&job_search_status_changed_by_user=true&employment={is_None(employment)}&schedule={is_None(schedule)}&experience={is_None(experience)}&education_level={is_None(education)}&text={is_None(text)}&page={page}",
+            url=f"https://hh.ru/search/resume?isDefaultArea=true&exp_period=all_time&logic=normal&pos=full_text&hhtmFrom=vacancy_search_list&hhtmFromLabel=resume_search_line&search_period=0&order_by=relevance&filter_exp_period=all_time&relocation={is_None(relocation)}&gender={is_None(sex)}&area=113&job_search_status={is_None(job_search_status)}&job_search_status_changed_by_user=true&employment={is_None(employment)}&schedule={is_None(schedule)}&experience={is_None(experience)}&education_level={is_None(education)}&text={text}&page={page}",
             headers={"user-agent": useragent.random}
         )
+
         if data.status_code != 200:
             continue
         soup = BeautifulSoup(data.content, features="lxml")
@@ -50,7 +56,7 @@ def get_links(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_sea
             if h3_tag is not None:
                 link = h3_tag.find("a")
                 if link is not None:
-                    yield f"https://api.hh.ru{link.attrs['href'].split('?')[0]}"
+                    yield f"https://hh.ru{link.attrs['href'].split('?')[0]}"
 
         time.sleep(1)
 
@@ -59,9 +65,9 @@ def get_resume(link):
     useragent = fake_useragent.UserAgent()
     data = requests.get(url=link, headers={"user-agent": useragent.random})
     if data.status_code != 200:
-        return
+        return 200
     soup = BeautifulSoup(data.content, "lxml")
-    if link not in list(i.url for i in session.query(Resume).all()):
+    if not session.query(Resume).filter_by(url=link).first():
         try:
             if len(soup.find_all("div", attrs={"class":"bloko-columns-row"}))>=2:
                 resume = soup.find_all("div", attrs={"class":"bloko-columns-row"})[1]
@@ -122,7 +128,7 @@ def get_resume(link):
                 language = [i.text for i in resume.find("div", attrs={"data-qa":"resume-block-languages"}).find("div", attrs={"class":"resume-block-item-gap"}).find_all("div", attrs={"class":"bloko-tag bloko-tag_inline"})]
             else:
                 language = []
-
+            print("Parsing")
             new_resume = Resume(
                 url=link,
                 sex=sex,
@@ -142,6 +148,7 @@ def get_resume(link):
 
             session.add(new_resume)
             session.commit()
+            print("DB")
         except Exception as e:
             print(f"Error: {e}")
             return 1, link
@@ -154,12 +161,13 @@ def get_links_vacancy(text: str, education: Vacancy_Education, part_time: Vacanc
     # experience - None(Не имеет значения), between1And3(1-3 года), noExperience(нет опыта), between3And6(3-6 лет), moreThan6(Более 6 лет)
     # schedule - fullDay(Полный день), shift(Сменный график), flyInFlyOut(Вахтовый метод), remote(Удаленныя работа), flexible(Гибкий график)
     useragent = fake_useragent.UserAgent()
-
+    print(text)
     def get_total_pages():
         data = requests.get(
-            url=f"https://hh.ru/search/vacancy?hhtmFrom=main&hhtmFromLabel=vacancy_search_line&search_field=name&search_field=company_name&search_field=description&enable_snippets=false&L_save_area=true&area=113&education={is_None(education)}&part_time={is_None(part_time)}&experience={is_None(experience)}&schedule={is_None(schedule)}&text={is_None(text)}",
+            url=f"https://hh.ru/search/vacancy?hhtmFrom=main&hhtmFromLabel=vacancy_search_line&search_field=name&search_field=company_name&search_field=description&enable_snippets=false&L_save_area=true&area=113&education={is_None(education)}&part_time={is_None(part_time)}&experience={is_None(experience)}&schedule={is_None(schedule)}&text={text}",
             headers={"user-agent": useragent.random}
         )
+        print(f"https://hh.ru/search/vacancy?hhtmFrom=main&hhtmFromLabel=vacancy_search_line&search_field=name&search_field=company_name&search_field=description&enable_snippets=false&L_save_area=true&area=113&education={is_None(education)}&part_time={is_None(part_time)}&experience={is_None(experience)}&schedule={is_None(schedule)}&text={text}")
         if data.status_code != 200:
             return 0
         soup = BeautifulSoup(data.content, "lxml")
@@ -178,9 +186,10 @@ def get_links_vacancy(text: str, education: Vacancy_Education, part_time: Vacanc
 
     for page in range(total_pages):
         data = requests.get(
-            url=f"https://hh.ru/search/vacancy?hhtmFrom=main&hhtmFromLabel=vacancy_search_line&search_field=name&search_field=company_name&search_field=description&enable_snippets=false&L_save_area=true&area=113&education={is_None(education)}&part_time={is_None(part_time)}&experience={is_None(experience)}&schedule={is_None(schedule)}&text={is_None(text)}&page={page}",
+            url=f"https://hh.ru/search/vacancy?hhtmFrom=main&hhtmFromLabel=vacancy_search_line&search_field=name&search_field=company_name&search_field=description&enable_snippets=false&L_save_area=true&area=113&education={is_None(education)}&part_time={is_None(part_time)}&experience={is_None(experience)}&schedule={is_None(schedule)}&text={text}&page={page}",
             headers={"user-agent": useragent.random}
         )
+
         if data.status_code != 200:
             continue
         soup = BeautifulSoup(data.content, features="lxml")
@@ -192,18 +201,17 @@ def get_links_vacancy(text: str, education: Vacancy_Education, part_time: Vacanc
                     link = h2_tag.find("a")
                     if link is not None:
                         if f"{link.attrs['href'].split('?')[0]}".split("/")[-1]!="click":
-                            yield "https://api.hh." + f"{link.attrs['href'].split('?')[0]}".replace("vacancy", "vacancies", 1).split('.', 1)[1]
-
-
-        time.sleep(1)
+                            print("links")
+                            yield "https://api." + f"{link.attrs['href'].split('?')[0]}".replace("vacancy", "vacancies", 1).split('.', 1)[1]
+        time.sleep(3)
 def get_vacancy(link):
-    data = requests.get(url=link, headers={"user-agent":"Parser/1.0 (den.spesivtsev.006@gmail.com)"})
+    data = requests.get(url=link, headers={"user-agent": "Parser/1.0 (den.spesivtsev.006@gmail.com)"})
 
     if data.status_code != 200:
         return 0
     time.sleep(1)
-    print(list(i.url for i in session.query(Vacancy).all()))
-    if link not in list(i.url for i in session.query(Vacancy).all()):
+
+    if not session.query(Vacancy).filter_by(url=link).first():
         vacancy = data.json()
         name = vacancy.get("name")
         area = vacancy.get("area").get("name")
@@ -217,19 +225,18 @@ def get_vacancy(link):
         schedule = vacancy.get("schedule").get("name")
         employment = vacancy.get("employment").get("name")
         contacts = vacancy.get("contacts")
-        description = BeautifulSoup(vacancy.get("description"),"lxml").text
+        description = BeautifulSoup(vacancy.get("description"), "lxml").text
         key_skills = [i.get("name") for i in vacancy.get("key_skills")]
         driver_license = [i.get("name") for i in vacancy.get("driver_license_types")]
         emloyer_name = vacancy.get("employer").get("name")
         languages = [i.get("name") for i in vacancy.get("languages")]
         print("Parsing")
-
         new_vacancy = Vacancy(
             url=link,
-            name = name,
-            area = area,
+            name=name,
+            area=area,
             salary_from=salary_from,
-            salary_to = salary_to,
+            salary_to=salary_to,
             experience=experience,
             schedule=schedule,
             employment=employment,
@@ -244,13 +251,16 @@ def get_vacancy(link):
         session.add(new_vacancy)
         session.commit()
         print("DB")
-def is_None(parm):
-    if parm == "Пропустить":
-        return None
     else:
-        return parm
+        print("In a DB")
+def is_None(parm: Union[Vacancy_Education, Vacancy_Schedule, Vacancy_Experience, Vacancy_PartTime]) -> Union[Enum, None]:
+    if isinstance(parm, Enum):
+        if parm.value == "Пропустить":
+            return ''
+        else:
+            return parm.value
 if __name__ == "__main__":
-    for page in get_links(None, relocation="living_or_relocation", sex="male", job_search_status="looking_for_offers", education="higher", employment="full", schedule="remote", experience=None):
+    for page in get_links('', relocation="living_or_relocation", sex="male", job_search_status="looking_for_offers", education="higher", employment="full", schedule="remote", experience=None, count=1):
         print(get_resume(page))
 # print(session.query(Resume).all())
 # if __name__== "__main__":

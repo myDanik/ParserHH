@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, Table, Meta
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import sessionmaker
-from ParserHH.url import URL
+from url import URL
 Base = declarative_base()
 engine = create_engine(URL)
 class Vacancy(Base):
@@ -49,5 +49,5 @@ class Resume(Base):
 Session = sessionmaker(bind=engine)
 session = Session()
 
-Base.metadata.drop_all(engine)
+
 Base.metadata.create_all(engine)
