@@ -47,7 +47,7 @@ URL = "postgresql://Имя_пользователя:Пароль@my_db:5432/Ба
 ![image](https://github.com/myDanik/ParserHH/assets/146641293/0a8eaf9e-7c9f-4a00-9b86-35c6c8f688ab)<br/>
 3.Введем значение не приводящие к существующим вакансиям:<br/>
 ![image](https://github.com/myDanik/ParserHH/assets/146641293/32846ea2-9e2b-4ac2-bb95-298065910bc9)<br/>
-Ожидаемый ответ c пустым списком([ccылка](https://hh.ru/search/vacancy?hhtmFrom=main&hhtmFromLabel=vacancy_search_line&search_field=name&search_field=company_name&search_field=description&enable_snippets=false&L_save_area=true&area=113&education=higher&part_time=start_after_sixteen&experience=noExperience&schedule=flexible&text=Rust senior&page=0)):<br/>
+Ожидаемый ответ c пустым списком([ccылка](https://hh.ru/search/vacancy?hhtmFrom=main&hhtmFromLabel=vacancy_search_line&search_field=name&search_field=company_name&search_field=description&enable_snippets=false&L_save_area=true&area=113&education=higher&part_time=start_after_sixteen&experience=noExperience&schedule=flexible&text=Rust_senior&page=0)):<br/>
 ![image](https://github.com/myDanik/ParserHH/assets/146641293/1e799b12-9808-4d64-9470-f0f61724f395)<br/>
 
 
