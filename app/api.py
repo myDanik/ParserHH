@@ -1,30 +1,63 @@
-from fastapi import FastAPI
-from main import get_links, get_resume, get_links_vacancy, get_vacancy
-from database import Resume, Vacancy, session, Base
-from shared.Enums.resume_parms_validation import *
-from shared.Enums.vacancy_parms_validation import *
+from fastapi import FastAPI, Depends
+from sqlalchemy.orm import Session
+from database import session, Resume, Vacancy, Base, engine
+from parsers.parser_resume import get_resume_links, get_resume_data
+from parsers.parser_vacancy import get_vacancy_links, get_vacancy_data
+
 app = FastAPI(title="ParserHH")
-@app.get("/resume")
-def resume_get(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_search_status: Resume_JobSearchStatus, employment: Resume_Employment, schedule: Resume_Schedule, experience: Resume_Experience, education: Resume_Education, count: int = 1):
-    print("API")
-    links = list(get_links(text,relocation,sex,job_search_status,employment,schedule,experience, education, count))
-    print(f"Fetched links: {links}")
-    existing_links = [resume.url.strip() for resume in session.query(Resume).all()]
-    print(f"Existing links in DB: {existing_links}")
 
-    if sorted(links) != sorted(existing_links):
+def get_db():
+    db = session
+    try:
+        yield db
+    finally:
+        db.close()
+
+def clear_database():
+    meta = Base.metadata
+    for table in reversed(meta.sorted_tables):
+        session.execute(table.delete())
+    session.commit()
+
+def process_entities(links_func, process_func, model, db: Session):
+    new_links = list(links_func)
+    
+    existing_links = [item.url.strip() for item in db.query(model).all()]
+    
+    if sorted(new_links) != sorted(existing_links):
         clear_database()
-        print("Drop DB")
-        for page in links:
-            get_resume(page)
+        for link in new_links:
+            process_func(link)
+    
+    return db.query(model).all()
 
-    resumes = session.query(Resume).all()
-
-    result_list = []
-
-    for resume in resumes:
-        resume_dict = {
-            "id": resume.id,
+@app.get("/resume")
+def get_resumes(
+    text: str,
+    relocation: str,
+    sex: str,
+    job_search_status: str,
+    employment: str,
+    schedule: str,
+    experience: str,
+    education: str,
+    count: int = 1,
+    db: Session = Depends(get_db)
+):
+    links_gen = get_resume_links(
+        text=text,
+        relocation=relocation,
+        sex=sex,
+        job_search_status=job_search_status,
+        employment=employment,
+        schedule=schedule,
+        experience=experience,
+        education=education,
+        max_count=count
+    )
+    
+    resumes = process_entities(links_gen, get_resume_data, Resume, db)
+    return {"data": [{"id": resume.id,
             "url": resume.url,
             "sex": resume.sex,
             "age": resume.age,
@@ -38,37 +71,29 @@ def resume_get(text: str, relocation: Resume_Relocation, sex: Resume_Sex, job_se
             "skills": [skill for skill in resume.skills],
             "about_me": resume.about_me,
             "education": resume.education,
-            "languages": [language for language in resume.language]
-        }
-        result_list.append(resume_dict)
+            "languages": [language for language in resume.language]} for r in resumes]} 
 
-    return {"status": "success",
-            "data": result_list,
-            "details": None
-            }
 @app.get("/vacancy")
-def vacancy_get(text: str, education: Vacancy_Education, part_time: Vacancy_PartTime, experience: Vacancy_Experience, schedule: Vacancy_Schedule, count: int = 1):
-    print(text)
-    links = list(get_links_vacancy(text=text, education=education, part_time=part_time, experience=experience, schedule=schedule, count=count))
-    print(f"Fetched links: {links}")
-    existing_links = [vacancy.url.strip() for vacancy in session.query(Vacancy).all()]
-    print(f"Existing links in DB: {existing_links}")
-
-
-    if sorted(links)!=sorted(existing_links):
-        clear_database()
-        print("Drop DB")
-        for page in links:
-            get_vacancy(page)
-
-
-    vacancies = session.query(Vacancy).all()
-
-    result_list = []
-
-    for vacancy in vacancies:
-        vacancy_dict = {
-            "id": vacancy.id,
+def get_vacancies(
+    text: str,
+    education: str,
+    part_time: str,
+    experience: str,
+    schedule: str,
+    count: int = 1,
+    db: Session = Depends(get_db)
+):
+    links_gen = get_vacancy_links(
+        text=text,
+        education=education,
+        part_time=part_time,
+        experience=experience,
+        schedule=schedule,
+        max_count=count
+    )
+    
+    vacancies = process_entities(links_gen, get_vacancy_data, Vacancy, db)
+    return {"data": [{"id": vacancy.id,
             "url": vacancy.url,
             "name": vacancy.name,
             "area": vacancy.area,
@@ -82,16 +107,4 @@ def vacancy_get(text: str, education: Vacancy_Education, part_time: Vacancy_Part
             "key_skills": vacancy.key_skills,
             "driver_license": vacancy.driver_license,
             "employer_name": vacancy.employer_name,
-            "languages": vacancy.languages
-        }
-        result_list.append(vacancy_dict)
-    return {"status": "success",
-     "data": result_list,
-     "details": None
-     }
-def clear_database():
-
-    meta = Base.metadata
-    for table in reversed(meta.sorted_tables):
-        session.execute(table.delete())
-    session.commit()
+            "languages": vacancy.languages} for v in vacancies]}
