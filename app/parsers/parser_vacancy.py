@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import time
 from fake_useragent import UserAgent
 from shared.Enums.vacancy_parms_validation import *
+from database import session, Vacancy
 
 def build_vacancy_search_url(
     text: str,
@@ -32,7 +33,7 @@ def parse_vacancy_links(html: str) -> List[str]:
         if h2 and (link := h2.find("a", href=True)):
             href = link["href"].split("?")[0]
             if "click" not in href:
-                links.append(f"https://api.hh.ru{href}")
+                links.append(f"https://api.hh.ru{href[13:]}")
     return links
 
 def get_vacancy_links(

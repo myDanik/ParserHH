@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import time
 from fake_useragent import UserAgent
 from shared.Enums.resume_parms_validation import *
+from database import session,Resume
 
 def build_resume_search_url(
     text: str,

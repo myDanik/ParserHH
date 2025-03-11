@@ -3,6 +3,12 @@ from sqlalchemy.orm import Session
 from database import session, Resume, Vacancy, Base, engine
 from parsers.parser_resume import get_resume_links, get_resume_data
 from parsers.parser_vacancy import get_vacancy_links, get_vacancy_data
+from shared.Enums.vacancy_parms_validation import (
+    Vacancy_Education,
+    Vacancy_PartTime,
+    Vacancy_Experience,
+    Vacancy_Schedule
+)
 
 app = FastAPI(title="ParserHH")
 
@@ -76,10 +82,10 @@ def get_resumes(
 @app.get("/vacancy")
 def get_vacancies(
     text: str,
-    education: str,
-    part_time: str,
-    experience: str,
-    schedule: str,
+    education: Vacancy_Education,
+    part_time: Vacancy_PartTime,
+    experience: Vacancy_Experience,
+    schedule: Vacancy_Schedule,
     count: int = 1,
     db: Session = Depends(get_db)
 ):
